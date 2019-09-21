@@ -1,7 +1,13 @@
-{:files {"deps.edn" "
-{:deps {}
+{:files {"deps.edn"
+
+         "
+{:deps {org.clojure/clojurescript {:mvn/version \"1.10.520\"}}
  :paths [\"src\" \"resources\"]
- :aliases {:nrepl {:extra-paths [\"dev\"]
+ :aliases {:test {:extra-paths [\"test\"]
+                  :extra-deps {com.cognitect/test-runner {:git/url \"https://github.com/cognitect-labs/test-runner.git\"
+                                                          :sha \"209b64504cb3bd3b99ecfec7937b358a879f55c1\"}}
+                  :main-opts [\"-m\" \"cognitect.test-runner\"]}
+           :nrepl {:extra-paths [\"dev\"]
                    :extra-deps {nrepl {:mvn/version \"RELEASE\"}
                                 vvvvalvalval/scope-capture {:mvn/version \"RELEASE\"}
                                 philoskim/debux {:mvn/version \"RELEASE\"}
@@ -20,7 +26,7 @@
          "src/${PROJECT-FILE-NAME}" {
 
                                      "nrepl.clj" "
-(ns ${NREPL-NS}
+(ns ${NS}.nrepl
   (:require cider.nrepl
             [clojure.pprint :refer [cl-format pprint]]
             nrepl.server
@@ -43,8 +49,6 @@
 "
 
                                      "main.clj" "
-(ns ${MAIN-NS})
+(ns ${NS}.main)
 
-(println \"hello world\")"
-
-                                     }}}
+(println \"hello world\")"}}}

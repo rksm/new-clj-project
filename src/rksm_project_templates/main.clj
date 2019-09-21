@@ -2,10 +2,13 @@
   (:gen-class)
   (:refer-clojure :exclude [replace])
   (:require [clojure.java.io :as io]
-            [clojure.pprint :refer [pprint]]
-            [clojure.stacktrace :as stacktrace]
-            [clojure.string :refer [includes? lower-case replace split trim]])
+            [clojure.pprint :refer [cl-format pprint]]
+            [clojure.string :refer [includes? lower-case replace split trim]]
+            [clojure.tools.cli :as cli])
   (:import java.io.File))
+
+(def templates {:cljs "cljs-deps.edn"
+                :clj "clj-deps.edn"})
 
 (defn replace-in-str
   "Replace ${XXX} with (:xxx replacements}."
@@ -39,18 +42,15 @@
   (doseq [^File f (reverse (file-seq (io/file dir)))] (.delete f)))
 
 (defn realize-project!
-  ([opts]
-   (let [project-templates
-         #_(-> "clj-deps-project.edn" io/file slurp read-string)
-         (-> "clj-deps-project.edn" io/resource slurp read-string)]
+  ([{:keys [template] :as opts}]
+   (let [project-templates (->> template keyword (get templates) io/resource slurp read-string)]
      (realize-project! opts project-templates)))
   ([{:keys [directory project-name namespace] :as _opts}
     {template-files :files :as _project-templates}]
    (let [project-name (or project-name
                           (-> directory io/file .getName (replace #"_" "-")))
          namespace-name (or namespace project-name)
-         replacements {:main-ns (str namespace-name ".main")
-                       :nrepl-ns (str namespace-name ".nrepl")
+         replacements {:ns namespace-name
                        :project-file-name (-> namespace-name (replace #"-" "_") (replace #"\." "/"))}
          project-files (file-list template-files replacements)]
      (write-files! project-files directory)
@@ -64,29 +64,27 @@
     :else (try (realize-project! opts)
                (catch Exception ^Exception e
                  (println e)
+                 ;; Hmm doesn't work with graal?
                  ;; (println (stacktrace/print-stack-trace e))
                  (System/exit 3)))))
 
 (def summary "Robert's project creator.")
 
-(defn parse-args [args]
-  (loop [opts {}
-         errors []
-         [next & rest] args
-         opt nil]
-    (case next
-      nil {:errors errors
-           :options opts
-           :summary summary}
-      ("-h" "--help") (recur (assoc opts :help true) errors rest nil)
-      ("-d" "--directory") (recur opts errors rest :directory)
-      ("-p" "--project-name") (recur opts errors rest :project-name)
-      "--ns" (recur opts errors rest :namespace)
-      (let [opts (if opt (assoc opts opt next) opts)]
-        (recur opts errors rest nil)))))
+(def cli-options
+  [["-l" "--list" "List project templates"]
+   ["-t" "--template NAME" "Project template to use"
+    :validate [#(contains? templates (keyword %)) "Unknown template"]
+    :default :clj]
+   ["-d" "--directory DIR" "Project directory"
+    :validate [#(not (.exists (io/file %))) "Project directory already exists"]]
+   ["-n" "--namespace NAMESPACE" "Main namespace to use (optional)"
+    :validate [#(not (includes? % " ")) "Invalid namespace name"]]
+   ["-p" "--project-name NAME" "Project name (optional)"
+    :validate [#(not (includes? % " ")) "Invalid project name"]]
+   ["-h" "--help"]])
 
 (defn -main [& args]
-  (let [{:keys [errors options summary]} (parse-args args)]
+  (let [{:keys [errors options summary]} (cli/parse-opts args cli-options)]
     (cond
       (not-empty errors) (do
                            (println (first errors))
@@ -94,14 +92,20 @@
       (:help options) (do
                         (println summary)
                         (System/exit 0))
+      (:list options) (do
+                        (cl-format true
+                                   "The following templates are available:~%~{  ~a~^~%~}~%"
+                                   (map name (keys templates)))
+                        (System/exit 0))
       :else (realize-project-safe! options))))
+
 
 
 
 (comment
 
-  (pprint (cli/parse-opts ["-d" "./src"] cli-options))
-  
+  (pprint (cli/parse-opts ["-d" "./src" "-t" "2cljs"] cli-options))
+
   (cli/parse-opts ["-h"] cli-options)
   (def args (cli/parse-opts ["-d" "./test-project"] cli-options))
   (def args (cli/parse-opts ["-d" "./test-project" "--ns" "rksm.test-project"] cli-options))
@@ -112,16 +116,3 @@
 
   (delete-all directory)
   )
-
-
-
-;; let [{:keys [errors options summary]} (cli/parse-opts args cli-options)]
-
-;; (def cli-options
-;;   [["-d" "--directory DIR" "Project directory"
-;;     :validate [#(not (.exists (io/file %))) "Project directory already exists"]]
-;;    [nil "--ns NAMESPACE" "Main namespace to use (optional)"
-;;     :validate [#(not (includes? % " ")) "Invalid namespace name"]]
-;;    ["-p" "--project-name NAME" "Project name (optional)"
-;;     :validate [#(not (includes? % " ")) "Invalid project name"]]
-;;    ["-h" "--help"]])
