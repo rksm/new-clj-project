@@ -1,4 +1,5 @@
-.PHONY: nrepl clean bin
+build:
+	$(MAKE) clean && $(MAKE) bin && bin/run -l
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # repl / dev
@@ -46,3 +47,5 @@ bin: $(BIN)
 
 clean:
 	rm -rf target .cpcache bin
+
+.PHONY: nrepl clean bin build
