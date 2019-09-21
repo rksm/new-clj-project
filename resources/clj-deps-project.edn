@@ -1,0 +1,50 @@
+{:files {"deps.edn" "
+{:deps {}
+ :paths [\"src\" \"resources\"]
+ :aliases {:nrepl {:extra-paths [\"dev\"]
+                   :extra-deps {nrepl {:mvn/version \"RELEASE\"}
+                                vvvvalvalval/scope-capture {:mvn/version \"RELEASE\"}
+                                philoskim/debux {:mvn/version \"RELEASE\"}
+                                cider/piggieback {:mvn/version \"RELEASE\"}
+                                cider/cider-nrepl {:mvn/version \"0.22.3\"}
+                                refactor-nrepl {:mvn/version \"2.5.0-SNAPSHOT\"}}}}"
+
+         "Makefile" ""
+
+         ".gitignore" "
+/.cpcache
+/.nrepl-port
+/target/
+/bin/"
+
+         "src/${PROJECT-FILE-NAME}" {
+
+                                     "nrepl.clj" "
+(ns ${NREPL-NS}
+  (:require cider.nrepl
+            [clojure.pprint :refer [cl-format pprint]]
+            nrepl.server
+            [refactor-nrepl.middleware :refer [wrap-refactor]]))
+
+;; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+(defonce clj-nrepl-server (atom nil))
+
+(defn start-clj-nrepl-server []
+  (let [middlewares (conj (map resolve cider.nrepl/cider-middleware)
+                          wrap-refactor)
+        handler (apply nrepl.server/default-handler middlewares)]
+    (pprint middlewares)
+    (reset! clj-nrepl-server (nrepl.server/start-server :handler handler :port 7888)))
+  (cl-format true \"clj nrepl server started~%\"))
+
+(defn -main [& args]
+  (start-clj-nrepl-server))
+"
+
+                                     "main.clj" "
+(ns ${MAIN-NS})
+
+(println \"hello world\")"
+
+                                     }}}

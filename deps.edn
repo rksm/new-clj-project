@@ -1,0 +1,18 @@
+{:deps {org.clojure/clojure {:mvn/version "1.9.0"}}
+ :paths ["src" "resources"]
+ :aliases {
+           :graal-prep
+           {:extra-paths ["dev"]
+            :main-opts ["-m" "rksm-project-templates.graal-resource-indexer"]}
+
+           :nrepl {:extra-paths ["dev"]
+                   :extra-deps {nrepl {:mvn/version "RELEASE"}
+                                vvvvalvalval/scope-capture {:mvn/version "RELEASE"}
+                                philoskim/debux {:mvn/version "RELEASE"}
+                                cider/piggieback {:mvn/version "RELEASE"}
+                                cider/cider-nrepl {:mvn/version "0.22.3"}
+                                refactor-nrepl {:mvn/version "2.5.0-SNAPSHOT"}}}
+
+           :aot
+           {:extra-paths ["target/classes"]
+            :main-opts ["-e" "(binding[*compile-path*\"target/classes\"](compile,'rksm-project-templates.main))"]}}}
